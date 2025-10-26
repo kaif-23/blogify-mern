@@ -7,6 +7,7 @@ import SignupPage from './pages/SignupPage';
 import AddBlogPage from './pages/AddBlogPage';
 import EditBlogPage from './pages/EditBlogPage';
 import { AuthProvider } from './context/AuthContext';
+import MyBlogsPage from './pages/MyBlogsPage';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <Route path="/user/signup" element={<SignupPage />} />
           <Route path="/blog/add-new" element={<AddBlogPage />} />
           <Route path="/blog/edit/:id" element={<EditBlogPage />} />
+          <Route path="/my-blogs" element={<MyBlogsPage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
