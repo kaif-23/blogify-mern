@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api, { getImageUrl } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { Card, Avatar, Button, Input, Spin, Breadcrumb, Tag, Divider } from 'antd';
+import { HomeOutlined, EditOutlined, DeleteOutlined, SendOutlined, ClockCircleOutlined, UserOutlined } from '@ant-design/icons';
+
+const { TextArea } = Input;
 
 function BlogPage() {
     const [blog, setBlog] = useState(null);
@@ -9,6 +13,7 @@ function BlogPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [newComment, setNewComment] = useState('');
+    const [submitting, setSubmitting] = useState(false);
 
     const { id } = useParams();
     const { user } = useAuth();
@@ -29,15 +34,17 @@ function BlogPage() {
         fetchBlogData();
     }, [id]);
 
-    const handleCommentSubmit = async (e) => {
-        e.preventDefault();
+    const handleCommentSubmit = async () => {
         if (!newComment.trim()) return;
         try {
+            setSubmitting(true);
             const res = await api.post(`/blog/comment/${id}`, { content: newComment });
             setComments([...comments, res.data]);
             setNewComment('');
         } catch (err) {
             setError(err.response?.data?.error || 'Failed to post comment.');
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -53,239 +60,307 @@ function BlogPage() {
     };
 
     if (loading) return (
-        <div className="container mt-5">
-            <div className="text-center py-5">
-                <div className="spinner-border text-primary" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                </div>
-                <p className="text-muted mt-3">Loading article...</p>
+        <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ background: '#0f0f23' }}>
+            <Spin size="large" />
+        </div>
+    );
+
+    if (error && !blog) return (
+        <div className="min-vh-100" style={{ background: '#0f0f23' }}>
+            <div className="container py-5">
+                <Card style={{
+                    background: '#1a1a2e',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '12px',
+                    color: '#ef4444'
+                }}>
+                    {error}
+                </Card>
             </div>
         </div>
     );
 
-    if (error) return (
-        <div className="container mt-5">
-            <div className="alert alert-danger border-0 shadow-sm rounded-4">{error}</div>
-        </div>
-    );
-
-    if (!blog) return (
-        <div className="container mt-5">
-            <div className="alert alert-warning border-0 shadow-sm rounded-4">Blog not found.</div>
-        </div>
-    );
+    if (!blog) return null;
 
     const isAuthor = user && user._id === blog.createdBy?._id;
 
     return (
-        <div className="min-vh-100" style={{ background: 'linear-gradient(to bottom, #f8f9fa 0%, #ffffff 50%)' }}>
+        <div className="min-vh-100" style={{ background: '#0f0f23' }}>
             <div className="container py-4">
                 {/* Breadcrumb */}
-                <nav aria-label="breadcrumb" className="mb-4">
-                    <ol className="breadcrumb">
-                        <li className="breadcrumb-item"><Link to="/" className="text-decoration-none">Home</Link></li>
-                        <li className="breadcrumb-item active" aria-current="page">Article</li>
-                    </ol>
-                </nav>
+                <Breadcrumb
+                    className="mb-4"
+                    items={[
+                        {
+                            href: '/',
+                            title: <><HomeOutlined /> <span>Home</span></>,
+                        },
+                        {
+                            title: 'Article',
+                        },
+                    ]}
+                    style={{ color: '#9ca3af' }}
+                />
 
-                {/* Main Article */}
-                <article className="mx-auto" style={{ maxWidth: '900px' }}>
-                    {/* Title Section */}
-                    <div className="text-center mb-4">
-                        <h1 className="display-5 fw-bold mb-4 lh-base" style={{
-                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                            backgroundClip: 'text'
-                        }}>
-                            {blog.title}
-                        </h1>
-
-                        {/* Author Card */}
-                        <div className="d-flex align-items-center justify-content-center mb-4">
-                            <img
-                                src={getImageUrl(blog.createdBy?.profileImageURL)}
-                                width="56"
-                                height="56"
-                                className="rounded-circle me-3 border border-3 border-white shadow"
-                                alt={blog.createdBy?.fullName}
-                                onError={(e) => e.target.src = 'https://placehold.co/56x56/667eea/ffffff?text=A'}
-                                style={{ objectFit: 'cover' }}
-                            />
-                            <div className="text-start">
-                                <div className="fw-bold fs-6 text-dark">{blog.createdBy?.fullName}</div>
-                                <div className="text-muted small">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" className="bi bi-calendar3 me-1" viewBox="0 0 16 16">
-                                        <path d="M14 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM1 3.857C1 3.384 1.448 3 2 3h12c.552 0 1 .384 1 .857v10.286c0 .473-.448.857-1 .857H2c-.552 0-1-.384-1-.857V3.857z" />
-                                        <path d="M6.5 7a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-9 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-9 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" />
-                                    </svg>
-                                    {new Date(blog.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Cover Image */}
-                    <div className="position-relative mb-5 rounded-4 overflow-hidden shadow-lg">
-                        <img
-                            src={getImageUrl(blog.coverImageURL)}
-                            className="w-100"
-                            alt={blog.title}
-                            style={{ maxHeight: '500px', objectFit: 'cover' }}
-                            onError={(e) => e.target.src = 'https://placehold.co/1200x600/667eea/ffffff?text=Blog+Cover'}
-                        />
-                    </div>
-
-                    {/* Content Card */}
-                    <div className="card border-0 shadow-sm mb-5 rounded-4">
-                        <div className="card-body p-4 p-md-5">
-                            {/* Action Buttons */}
-                            {isAuthor && (
-                                <div className="d-flex gap-2 mb-4 pb-4 border-bottom">
-                                    <Link to={`/blog/edit/${blog._id}`} className="btn btn-outline-primary rounded-pill px-4">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-pencil me-2" viewBox="0 0 16 16">
-                                            <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z" />
-                                        </svg>
-                                        Edit Post
-                                    </Link>
-                                    <button onClick={handleDeleteBlog} className="btn btn-outline-danger rounded-pill px-4">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-trash me-2" viewBox="0 0 16 16">
-                                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6Z" />
-                                            <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z" />
-                                        </svg>
-                                        Delete Post
-                                    </button>
-                                </div>
-                            )}
-
-                            {/* Article Content */}
-                            <div className="article-content" style={{
-                                fontSize: '1.125rem',
-                                lineHeight: '1.8',
-                                color: '#374151'
+                {/* Main Article Card */}
+                <div className="row justify-content-center">
+                    <div className="col-lg-10">
+                        <Card
+                            style={{
+                                background: '#1a1a2e',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                borderRadius: '12px',
+                                marginBottom: '24px'
+                            }}
+                            bodyStyle={{ padding: '32px' }}
+                        >
+                            {/* Title */}
+                            <h1 style={{
+                                color: '#e0e0e0',
+                                fontSize: '2.5rem',
+                                fontWeight: '700',
+                                marginBottom: '24px',
+                                lineHeight: '1.3'
                             }}>
-                                <pre style={{
-                                    whiteSpace: 'pre-wrap',
-                                    fontFamily: 'inherit',
-                                    margin: 0,
-                                    border: 'none',
-                                    padding: 0,
-                                    background: 'transparent'
-                                }}>
-                                    {blog.body}
-                                </pre>
-                            </div>
-                        </div>
-                    </div>
+                                {blog.title}
+                            </h1>
 
-                    {/* Comments Section */}
-                    <div className="card border-0 shadow-sm rounded-4">
-                        <div className="card-body p-4 p-md-5">
-                            <h3 className="mb-4 d-flex align-items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" className="bi bi-chat-dots me-2 text-primary" viewBox="0 0 16 16">
-                                    <path d="M5 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" />
-                                    <path d="m2.165 15.803.02-.004c1.83-.363 2.948-.842 3.468-1.105A9.06 9.06 0 0 0 8 15c4.418 0 8-3.134 8-7s-3.582-7-8-7-8 3.134-8 7c0 1.76.743 3.37 1.97 4.6a10.437 10.437 0 0 1-.524 2.318l-.003.011a10.722 10.722 0 0 1-.244.637c-.079.186.074.394.273.362a21.673 21.673 0 0 0 .693-.125zm.8-3.108a1 1 0 0 0-.287-.801C1.618 10.83 1 9.468 1 8c0-3.192 3.004-6 7-6s7 2.808 7 6c0 3.193-3.004 6-7 6a8.06 8.06 0 0 1-2.088-.272 1 1 0 0 0-.711.074c-.387.196-1.24.57-2.634.893a10.97 10.97 0 0 0 .398-2z" />
-                                </svg>
-                                Comments ({comments.length})
-                            </h3>
-
-                            {/* Comment Form */}
-                            {user ? (
-                                <form onSubmit={handleCommentSubmit} className="mb-5">
-                                    <div className="d-flex gap-3 align-items-start">
-                                        <img
-                                            src={getImageUrl(user.profileImageURL)}
-                                            width="48"
-                                            height="48"
-                                            className="rounded-circle border border-2 border-light shadow-sm"
-                                            alt={user.fullName}
-                                            onError={(e) => e.target.src = 'https://placehold.co/48x48/667eea/ffffff?text=U'}
-                                            style={{ objectFit: 'cover' }}
-                                        />
-                                        <div className="flex-grow-1">
-                                            <textarea
-                                                className="form-control border-2 rounded-3 shadow-sm"
-                                                placeholder="Share your thoughts..."
-                                                value={newComment}
-                                                onChange={(e) => setNewComment(e.target.value)}
-                                                required
-                                                rows="3"
-                                                style={{ resize: 'none' }}
-                                            />
-                                            <div className="d-flex justify-content-end mt-2">
-                                                <button className="btn btn-primary rounded-pill px-4" type="submit">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-send me-2" viewBox="0 0 16 16">
-                                                        <path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576 6.636 10.07Zm6.787-8.201L1.591 6.602l4.339 2.76 7.494-7.493Z" />
-                                                    </svg>
-                                                    Post Comment
-                                                </button>
-                                            </div>
+                            {/* Author Info */}
+                            <div className="d-flex align-items-center justify-content-between mb-4">
+                                <div className="d-flex align-items-center">
+                                    <Avatar
+                                        size={56}
+                                        src={getImageUrl(blog.createdBy?.profileImageURL)}
+                                        style={{ border: '2px solid #6366f1', marginRight: '16px' }}
+                                    >
+                                        {blog.createdBy?.fullName?.[0] || 'A'}
+                                    </Avatar>
+                                    <div>
+                                        <div style={{ color: '#e0e0e0', fontWeight: '600', fontSize: '1rem' }}>
+                                            {blog.createdBy?.fullName}
+                                        </div>
+                                        <div style={{ color: '#9ca3af', fontSize: '0.875rem' }}>
+                                            <ClockCircleOutlined style={{ marginRight: '6px' }} />
+                                            {new Date(blog.createdAt).toLocaleDateString('en-US', {
+                                                year: 'numeric',
+                                                month: 'long',
+                                                day: 'numeric'
+                                            })}
                                         </div>
                                     </div>
-                                </form>
-                            ) : (
-                                <div className="alert alert-light border rounded-3 mb-4">
-                                    <p className="mb-0 text-muted">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-info-circle me-2" viewBox="0 0 16 16">
-                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
-                                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z" />
-                                        </svg>
-                                        Please <Link to="/user/signin" className="fw-bold text-decoration-none">sign in</Link> to leave a comment.
-                                    </p>
                                 </div>
-                            )}
 
-                            {/* Comments List */}
-                            <div className="comments-list">
-                                {comments.length > 0 ? (
-                                    comments.map((comment, index) => (
-                                        <div
-                                            key={comment._id}
-                                            className={`d-flex gap-3 ${index !== comments.length - 1 ? 'pb-4 mb-4 border-bottom' : ''}`}
+                                {isAuthor && (
+                                    <div className="d-flex gap-2">
+                                        <Link to={`/blog/edit/${blog._id}`}>
+                                            <Button
+                                                icon={<EditOutlined />}
+                                                style={{
+                                                    background: 'rgba(99, 102, 241, 0.1)',
+                                                    border: '1px solid #6366f1',
+                                                    color: '#6366f1',
+                                                    borderRadius: '8px'
+                                                }}
+                                            >
+                                                Edit
+                                            </Button>
+                                        </Link>
+                                        <Button
+                                            danger
+                                            icon={<DeleteOutlined />}
+                                            onClick={handleDeleteBlog}
+                                            style={{
+                                                background: 'rgba(239, 68, 68, 0.1)',
+                                                border: '1px solid #ef4444',
+                                                borderRadius: '8px'
+                                            }}
                                         >
-                                            <img
-                                                src={getImageUrl(comment.createdBy?.profileImageURL)}
-                                                width="44"
-                                                height="44"
-                                                className="rounded-circle border border-2 border-light shadow-sm"
-                                                alt={comment.createdBy?.fullName}
-                                                onError={(e) => e.target.src = 'https://placehold.co/44x44/667eea/ffffff?text=U'}
-                                                style={{ objectFit: 'cover' }}
-                                            />
-                                            <div className="flex-grow-1">
-                                                <div className="d-flex align-items-center mb-2">
-                                                    <span className="fw-bold text-dark me-2">
-                                                        {comment.createdBy?.fullName}
-                                                    </span>
-                                                    <span className="text-muted small">
-                                                        {new Date(comment.createdAt).toLocaleDateString('en-US', {
-                                                            year: 'numeric',
-                                                            month: 'short',
-                                                            day: 'numeric',
-                                                            hour: '2-digit',
-                                                            minute: '2-digit'
-                                                        })}
-                                                    </span>
-                                                </div>
-                                                <p className="mb-0 text-dark" style={{ lineHeight: '1.6' }}>
-                                                    {comment.content}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="text-center py-5">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" className="bi bi-chat-square-dots text-muted opacity-50 mb-3" viewBox="0 0 16 16">
-                                            <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2.5a2 2 0 0 0-1.6.8L8 14.333 6.1 11.8a2 2 0 0 0-1.6-.8H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2.5a1 1 0 0 1 .8.4l1.9 2.533a1 1 0 0 0 1.6 0l1.9-2.533a1 1 0 0 1 .8-.4H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
-                                            <path d="M5 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z" />
-                                        </svg>
-                                        <p className="text-muted mb-0">No comments yet. Be the first to share your thoughts!</p>
+                                            Delete
+                                        </Button>
                                     </div>
                                 )}
                             </div>
-                        </div>
+
+                            {/* Cover Image */}
+                            <div style={{
+                                borderRadius: '12px',
+                                overflow: 'hidden',
+                                marginBottom: '32px'
+                            }}>
+                                <img
+                                    src={getImageUrl(blog.coverImageURL)}
+                                    alt={blog.title}
+                                    style={{
+                                        width: '100%',
+                                        maxHeight: '500px',
+                                        objectFit: 'cover'
+                                    }}
+                                    onError={(e) => e.target.src = 'https://placehold.co/1200x600/1a1a2e/6366f1?text=Blog+Cover'}
+                                />
+                            </div>
+
+                            {/* Content */}
+                            <div style={{
+                                color: '#d1d5db',
+                                fontSize: '1.125rem',
+                                lineHeight: '1.8',
+                                whiteSpace: 'pre-wrap'
+                            }}>
+                                {blog.body}
+                            </div>
+                        </Card>
+
+                        {/* Comments Section */}
+                        <Card
+                            title={
+                                <span style={{ color: '#e0e0e0', fontSize: '1.5rem', fontWeight: '600' }}>
+                                    💬 Comments ({comments.length})
+                                </span>
+                            }
+                            style={{
+                                background: '#1a1a2e',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                borderRadius: '12px'
+                            }}
+                            headStyle={{
+                                borderBottom: '1px solid rgba(255,255,255,0.1)',
+                                padding: '20px 24px'
+                            }}
+                            bodyStyle={{ padding: '24px' }}
+                        >
+                            {/* Comment Form */}
+                            {user ? (
+                                <div className="mb-4">
+                                    <div className="d-flex gap-3 mb-3">
+                                        <Avatar
+                                            size={44}
+                                            src={getImageUrl(user.profileImageURL)}
+                                            style={{ border: '2px solid #6366f1' }}
+                                        >
+                                            {user.fullName?.[0] || 'U'}
+                                        </Avatar>
+                                        <div style={{ flex: 1 }}>
+                                            <TextArea
+                                                rows={3}
+                                                value={newComment}
+                                                onChange={(e) => setNewComment(e.target.value)}
+                                                placeholder="Share your thoughts..."
+                                                style={{
+                                                    background: '#0f0f23',
+                                                    border: '1px solid rgba(255,255,255,0.1)',
+                                                    borderRadius: '8px',
+                                                    color: '#e0e0e0',
+                                                    resize: 'none'
+                                                }}
+                                            />
+                                            <div className="d-flex justify-content-end mt-2">
+                                                <Button
+                                                    type="primary"
+                                                    icon={<SendOutlined />}
+                                                    onClick={handleCommentSubmit}
+                                                    loading={submitting}
+                                                    style={{
+                                                        background: '#6366f1',
+                                                        border: 'none',
+                                                        borderRadius: '8px'
+                                                    }}
+                                                >
+                                                    Post Comment
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <Card
+                                    style={{
+                                        background: 'rgba(99, 102, 241, 0.05)',
+                                        border: '1px solid rgba(99, 102, 241, 0.2)',
+                                        borderRadius: '8px',
+                                        marginBottom: '24px'
+                                    }}
+                                    bodyStyle={{ padding: '16px' }}
+                                >
+                                    <p style={{ color: '#9ca3af', marginBottom: 0 }}>
+                                        <UserOutlined style={{ marginRight: '8px' }} />
+                                        Please <Link to="/user/signin" style={{ color: '#6366f1', fontWeight: '600' }}>sign in</Link> to leave a comment.
+                                    </p>
+                                </Card>
+                            )}
+
+                            {/* Comments List */}
+                            {comments.length > 0 ? (
+                                <div>
+                                    {comments.map((comment, index) => (
+                                        <div key={comment._id}>
+                                            <div className="d-flex gap-3">
+                                                <Avatar
+                                                    size={40}
+                                                    src={getImageUrl(comment.createdBy?.profileImageURL)}
+                                                    style={{ border: '2px solid rgba(99, 102, 241, 0.3)' }}
+                                                >
+                                                    {comment.createdBy?.fullName?.[0] || 'A'}
+                                                </Avatar>
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{
+                                                        background: '#0f0f23',
+                                                        padding: '12px 16px',
+                                                        borderRadius: '12px',
+                                                        border: '1px solid rgba(255,255,255,0.05)'
+                                                    }}>
+                                                        <div className="d-flex justify-content-between align-items-start mb-2">
+                                                            <span style={{
+                                                                color: '#e0e0e0',
+                                                                fontWeight: '600',
+                                                                fontSize: '0.95rem'
+                                                            }}>
+                                                                {comment.createdBy?.fullName}
+                                                            </span>
+                                                            <span style={{ color: '#6b7280', fontSize: '0.8rem' }}>
+                                                                {new Date(comment.createdAt).toLocaleDateString('en-US', {
+                                                                    month: 'short',
+                                                                    day: 'numeric',
+                                                                    hour: '2-digit',
+                                                                    minute: '2-digit'
+                                                                })}
+                                                            </span>
+                                                        </div>
+                                                        <p style={{
+                                                            color: '#d1d5db',
+                                                            marginBottom: 0,
+                                                            lineHeight: '1.6',
+                                                            fontSize: '0.95rem'
+                                                        }}>
+                                                            {comment.content}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {index < comments.length - 1 && (
+                                                <Divider style={{
+                                                    borderColor: 'rgba(255,255,255,0.05)',
+                                                    margin: '20px 0'
+                                                }} />
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div style={{
+                                    textAlign: 'center',
+                                    padding: '48px 0',
+                                    color: '#6b7280'
+                                }}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" className="bi bi-chat-square-dots mb-3 opacity-50" viewBox="0 0 16 16">
+                                        <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2.5a2 2 0 0 0-1.6.8L8 14.333 6.1 11.8a2 2 0 0 0-1.6-.8H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2.5a1 1 0 0 1 .8.4l1.9 2.533a1 1 0 0 0 1.6 0l1.9-2.533a1 1 0 0 1 .8-.4H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
+                                        <path d="M5 6a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z" />
+                                    </svg>
+                                    <p style={{ marginBottom: 0 }}>No comments yet. Be the first to share your thoughts!</p>
+                                </div>
+                            )}
+                        </Card>
                     </div>
-                </article>
+                </div>
             </div>
         </div>
     );
