@@ -25,8 +25,9 @@ mongoose.connect(MONGODB_URI)
     });
 
 // Middleware
+const clientURL = process.env.CLIENT_URL || 'http://localhost:3000';
 app.use(cors({
-    origin: 'http://localhost:3000', // Allow React dev server
+    origin: [clientURL, 'http://localhost:3000'], // Allow production and dev
     credentials: true // Allow cookies to be sent
 }));
 app.use(express.json()); // Parse JSON bodies
